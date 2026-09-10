@@ -1,0 +1,23 @@
+{
+    "accuracy": 0.9991,
+    "balanced_accuracy": 0.9813,
+    "macro_f1": 0.9731,
+    "weighted_f1": 0.9991,
+    "classes": [
+        "BENIGN",
+        "Bot",
+        "DDoS",
+        "DoS GoldenEye",
+        "DoS Hulk",
+        "DoS Slowhttptest",
+        "DoS slowloris",
+        "FTP-Patator",
+        "Heartbleed",
+        "Infiltration",
+        "PortScan",
+        "SSH-Patator",
+        "Web Attack \u2013 Brute Force",
+        "Web Attack \u2013 Sql Injection",
+        "Web Attack \u2013 XSS"
+    ]
+}

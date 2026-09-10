@@ -1,0 +1,66 @@
+[
+    {
+        "dataset": "Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv",
+        "rows": 225745,
+        "accuracy": 0.9994,
+        "balanced_accuracy": 0.9994,
+        "macro_f1": 0.2856,
+        "weighted_f1": 0.9997
+    },
+    {
+        "dataset": "Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv",
+        "rows": 286467,
+        "accuracy": 0.9985,
+        "balanced_accuracy": 0.9983,
+        "macro_f1": 0.222,
+        "weighted_f1": 0.9992
+    },
+    {
+        "dataset": "Friday-WorkingHours-Morning.pcap_ISCX.csv",
+        "rows": 191033,
+        "accuracy": 0.9995,
+        "balanced_accuracy": 0.997,
+        "macro_f1": 0.1996,
+        "weighted_f1": 0.9997
+    },
+    {
+        "dataset": "Monday-WorkingHours.pcap_ISCX.csv",
+        "rows": 529918,
+        "accuracy": 0.9995,
+        "balanced_accuracy": 0.9995,
+        "macro_f1": 0.1,
+        "weighted_f1": 0.9998
+    },
+    {
+        "dataset": "Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv",
+        "rows": 288602,
+        "accuracy": 0.9961,
+        "balanced_accuracy": 0.9564,
+        "macro_f1": 0.2443,
+        "weighted_f1": 0.998
+    },
+    {
+        "dataset": "Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv",
+        "rows": 170366,
+        "accuracy": 0.999,
+        "balanced_accuracy": 0.9529,
+        "macro_f1": 0.429,
+        "weighted_f1": 0.9992
+    },
+    {
+        "dataset": "Tuesday-WorkingHours.pcap_ISCX.csv",
+        "rows": 445909,
+        "accuracy": 0.9997,
+        "balanced_accuracy": 0.9998,
+        "macro_f1": 0.375,
+        "weighted_f1": 0.9998
+    },
+    {
+        "dataset": "Wednesday-workingHours.pcap_ISCX.csv",
+        "rows": 692703,
+        "accuracy": 0.9996,
+        "balanced_accuracy": 0.9995,
+        "macro_f1": 0.5452,
+        "weighted_f1": 0.9996
+    }
+]

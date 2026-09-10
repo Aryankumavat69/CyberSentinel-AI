@@ -1,0 +1,9 @@
+dataset,rows,accuracy,balanced_accuracy,macro_f1,weighted_f1
+Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv,225745,0.9994,0.9994,0.2856,0.9997
+Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv,286467,0.9985,0.9983,0.222,0.9992
+Friday-WorkingHours-Morning.pcap_ISCX.csv,191033,0.9995,0.997,0.1996,0.9997
+Monday-WorkingHours.pcap_ISCX.csv,529918,0.9995,0.9995,0.1,0.9998
+Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv,288602,0.9961,0.9564,0.2443,0.998
+Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv,170366,0.999,0.9529,0.429,0.9992
+Tuesday-WorkingHours.pcap_ISCX.csv,445909,0.9997,0.9998,0.375,0.9998
+Wednesday-workingHours.pcap_ISCX.csv,692703,0.9996,0.9995,0.5452,0.9996

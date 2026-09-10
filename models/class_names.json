@@ -1,0 +1,17 @@
+[
+  "BENIGN",
+  "Bot",
+  "DDoS",
+  "DoS GoldenEye",
+  "DoS Hulk",
+  "DoS Slowhttptest",
+  "DoS slowloris",
+  "FTP-Patator",
+  "Heartbleed",
+  "Infiltration",
+  "PortScan",
+  "SSH-Patator",
+  "Web Attack \u2013 Brute Force",
+  "Web Attack \u2013 Sql Injection",
+  "Web Attack \u2013 XSS"
+]
