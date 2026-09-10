@@ -31,11 +31,11 @@ app = FastAPI(
     version="4.0.0"
 )
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://cyber-sentinel-ai-mgje-amber.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
