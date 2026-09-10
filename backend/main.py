@@ -11,25 +11,37 @@ from pydantic import BaseModel
 from src.predict import predict_threat, feature_columns
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ==========================================
+# PATHS
+# ==========================================
 
-DATA_DIR = (
-    BASE_DIR
-    / "data"
-    / "raw"
-    / "CIC-IDS2017"
-)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_DIR = BASE_DIR / "models"
 
 EVALUATION_DIR = MODEL_DIR / "evaluation"
 
+PROCESSED_DIR = BASE_DIR / "data" / "processed"
+
+DEPLOYMENT_SAMPLES_FILE = (
+    PROCESSED_DIR / "deployment_samples.json"
+)
+
+
+# ==========================================
+# FASTAPI APP
+# ==========================================
 
 app = FastAPI(
     title="CyberSentinel AI",
     description="AI-powered network threat detection API",
     version="4.0.0"
 )
+
+
+# ==========================================
+# CORS
+# ==========================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,9 +55,25 @@ app.add_middleware(
 )
 
 
+# ==========================================
+# REQUEST MODELS
+# ==========================================
+
 class PredictionRequest(BaseModel):
     data: list[dict[str, Any]]
 
+
+class FeedbackRequest(BaseModel):
+    prediction: str
+    severity: str
+    risk_score: float
+    feedback: str
+    comment: str = ""
+
+
+# ==========================================
+# SCENARIOS
+# ==========================================
 
 SCENARIOS = {
     "benign": "Monday-WorkingHours.pcap_ISCX.csv",
@@ -58,6 +86,10 @@ SCENARIOS = {
     "ssh_ftp": "Tuesday-WorkingHours.pcap_ISCX.csv",
 }
 
+
+# ==========================================
+# HOME
+# ==========================================
 
 @app.get("/")
 def home():
@@ -73,11 +105,19 @@ def home():
     }
 
 
+# ==========================================
+# DEFAULT SAMPLE
+# ==========================================
+
 @app.get("/sample")
 def get_sample():
 
     return get_scenario_sample("benign")
 
+
+# ==========================================
+# TRAFFIC SAMPLE
+# ==========================================
 
 @app.get("/sample/{scenario}")
 def get_scenario_sample(
@@ -86,73 +126,76 @@ def get_scenario_sample(
 
     scenario = scenario.lower()
 
+    # Check scenario name
     if scenario not in SCENARIOS:
 
         raise HTTPException(
             status_code=404,
             detail={
                 "error": "Unknown scenario",
-                "available_scenarios":
-                    list(SCENARIOS.keys())
+                "available_scenarios": list(
+                    SCENARIOS.keys()
+                )
             }
         )
 
-    file_path = (
-        DATA_DIR
-        / SCENARIOS[scenario]
-    )
+    # --------------------------------------
+    # Use small deployment sample file
+    # instead of the full CIC-IDS2017 dataset
+    # --------------------------------------
 
-    if not file_path.exists():
+    if not DEPLOYMENT_SAMPLES_FILE.exists():
 
         raise HTTPException(
             status_code=404,
-            detail="Dataset file not found"
+            detail="Deployment sample data not found"
         )
 
     try:
 
-        df = pd.read_csv(
-            file_path,
-            encoding="utf-8"
+        with open(
+            DEPLOYMENT_SAMPLES_FILE,
+            "r"
+        ) as f:
+
+            samples = json.load(f)
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to load deployment samples: {str(e)}"
         )
 
-    except UnicodeDecodeError:
-
-        df = pd.read_csv(
-            file_path,
-            encoding="cp1252"
-        )
-
-    df.columns = (
-        df.columns
-        .str.strip()
-    )
-
-    sample_df = df[
-        feature_columns
-    ].dropna()
-
-    if sample_df.empty:
+    # Check requested scenario
+    if scenario not in samples:
 
         raise HTTPException(
             status_code=404,
-            detail="No valid sample found"
+            detail={
+                "error": "Sample not found",
+                "scenario": scenario,
+                "available_samples": list(
+                    samples.keys()
+                )
+            }
         )
 
-    sample = sample_df.iloc[[0]]
+    sample = samples[scenario]
 
     return {
         "success": True,
         "scenario": scenario,
-        "file": SCENARIOS[scenario],
         "feature_count": len(
             feature_columns
         ),
-        "data": sample.to_dict(
-            orient="records"
-        )[0]
+        "data": sample
     }
 
+
+# ==========================================
+# PREDICTION
+# ==========================================
 
 @app.post("/predict")
 def predict(
@@ -181,14 +224,6 @@ def predict(
 # ==========================================
 # ANALYST FEEDBACK
 # ==========================================
-
-class FeedbackRequest(BaseModel):
-    prediction: str
-    severity: str
-    risk_score: float
-    feedback: str
-    comment: str = ""
-
 
 @app.post("/feedback")
 def submit_feedback(
@@ -274,6 +309,8 @@ def get_feedback():
                 orient="records"
             )
     }
+
+
 # ==========================================
 # SCENARIO PERFORMANCE
 # ==========================================
