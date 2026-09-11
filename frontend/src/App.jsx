@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_URL = "https://cybersentinel-ai-fqjs.onrender.com";
 
@@ -21,8 +21,23 @@ function App() {
   const [history, setHistory] = useState([]);
   const [feedbackCount, setFeedbackCount] = useState(0);
 
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [monitoringStatus, setMonitoringStatus] =
+    useState("Monitoring stopped");
+
+  const monitoringRef = useRef(false);
+  const monitoringTimerRef = useRef(null);
+
   useEffect(() => {
     loadFeedback();
+
+    return () => {
+      monitoringRef.current = false;
+
+      if (monitoringTimerRef.current) {
+        clearTimeout(monitoringTimerRef.current);
+      }
+    };
   }, []);
 
   const loadFeedback = async () => {
@@ -46,14 +61,23 @@ function App() {
     }
   };
 
-  const analyzeTraffic = async () => {
-    setLoading(true);
-    setResult(null);
-    setFeedbackStatus("");
+  const analyzeTraffic = async (
+    selectedScenario = scenario,
+    isLiveMonitoring = false
+  ) => {
+    if (isLiveMonitoring) {
+      setMonitoringStatus(
+        `Analyzing ${selectedScenario}...`
+      );
+    } else {
+      setLoading(true);
+      setResult(null);
+      setFeedbackStatus("");
+    }
 
     try {
       const sampleResponse = await fetch(
-        `${API_URL}/sample/${scenario}`
+        `${API_URL}/sample/${selectedScenario}`
       );
 
       if (!sampleResponse.ok) {
@@ -95,8 +119,8 @@ function App() {
       setResult(analysis);
 
       const historyItem = {
-        id: Date.now(),
-        scenario,
+        id: Date.now() + Math.random(),
+        scenario: selectedScenario,
         prediction:
           analysis.prediction,
         severity:
@@ -110,14 +134,96 @@ function App() {
           [
             historyItem,
             ...previous,
-          ].slice(0, 12)
+          ].slice(0, 20)
       );
+
+      if (isLiveMonitoring) {
+        setMonitoringStatus(
+          `${analysis.prediction} detected • Risk ${analysis.risk_score}`
+        );
+      }
+
+      return analysis;
     } catch (error) {
       console.error(error);
-      alert(error.message);
+
+      if (isLiveMonitoring) {
+        setMonitoringStatus(
+          "Monitoring connection error"
+        );
+      } else {
+        alert(error.message);
+      }
+
+      return null;
     } finally {
-      setLoading(false);
+      if (!isLiveMonitoring) {
+        setLoading(false);
+      }
     }
+  };
+
+  const runLiveDetection = async () => {
+    if (!monitoringRef.current) {
+      return;
+    }
+
+    const randomIndex =
+      Math.floor(
+        Math.random() *
+          SCENARIOS.length
+      );
+
+    const selectedScenario =
+      SCENARIOS[randomIndex].value;
+
+    await analyzeTraffic(
+      selectedScenario,
+      true
+    );
+
+    if (!monitoringRef.current) {
+      return;
+    }
+
+    monitoringTimerRef.current =
+      setTimeout(
+        runLiveDetection,
+        4000
+      );
+  };
+
+  const startMonitoring = () => {
+    if (monitoringRef.current) {
+      return;
+    }
+
+    monitoringRef.current = true;
+    setIsMonitoring(true);
+
+    setMonitoringStatus(
+      "Live monitoring started"
+    );
+
+    runLiveDetection();
+  };
+
+  const stopMonitoring = () => {
+    monitoringRef.current = false;
+
+    setIsMonitoring(false);
+
+    if (monitoringTimerRef.current) {
+      clearTimeout(
+        monitoringTimerRef.current
+      );
+
+      monitoringTimerRef.current = null;
+    }
+
+    setMonitoringStatus(
+      "Monitoring stopped"
+    );
   };
 
   const submitFeedback = async (
@@ -223,6 +329,20 @@ function App() {
           "CRITICAL"
     ).length;
 
+  const averageRisk =
+    history.length > 0
+      ? (
+          history.reduce(
+            (total, item) =>
+              total +
+              Number(
+                item.risk_score || 0
+              ),
+            0
+          ) / history.length
+        ).toFixed(1)
+      : "0.0";
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
 
@@ -240,9 +360,24 @@ function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-400">
-            <span className="h-2 w-2 rounded-full bg-green-400"></span>
-            System Online
+          <div
+            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${
+              isMonitoring
+                ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-400"
+                : "border-green-500/30 bg-green-500/10 text-green-400"
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isMonitoring
+                  ? "animate-pulse bg-cyan-400"
+                  : "bg-green-400"
+              }`}
+            ></span>
+
+            {isMonitoring
+              ? "Live Monitoring"
+              : "System Online"}
           </div>
 
         </div>
@@ -266,12 +401,13 @@ function App() {
 
             <select
               value={scenario}
+              disabled={isMonitoring}
               onChange={(event) =>
                 setScenario(
                   event.target.value
                 )
               }
-              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500 disabled:opacity-50"
             >
               {SCENARIOS.map(
                 (item) => (
@@ -286,16 +422,65 @@ function App() {
             </select>
 
             <button
-              onClick={
-                analyzeTraffic
+              onClick={() =>
+                analyzeTraffic(
+                  scenario,
+                  false
+                )
               }
-              disabled={loading}
+              disabled={
+                loading ||
+                isMonitoring
+              }
               className="rounded-xl bg-cyan-600 px-6 py-3 font-semibold hover:bg-cyan-500 disabled:opacity-50"
             >
               {loading
                 ? "Analyzing..."
                 : "🔍 Analyze Traffic"}
             </button>
+
+            {!isMonitoring ? (
+              <button
+                onClick={
+                  startMonitoring
+                }
+                className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-3 font-semibold text-green-400 hover:bg-green-500/20"
+              >
+                ▶️ Start Live Monitoring
+              </button>
+            ) : (
+              <button
+                onClick={
+                  stopMonitoring
+                }
+                className="rounded-xl border border-red-500/40 bg-red-500/10 px-6 py-3 font-semibold text-red-400 hover:bg-red-500/20"
+              >
+                ⏹️ Stop Monitoring
+              </button>
+            )}
+
+          </div>
+
+          {/* MONITORING STATUS */}
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3">
+
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isMonitoring
+                  ? "animate-pulse bg-cyan-400"
+                  : "bg-slate-600"
+              }`}
+            ></span>
+
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-500">
+                Monitoring Status
+              </p>
+
+              <p className="mt-1 text-sm text-slate-300">
+                {monitoringStatus}
+              </p>
+            </div>
 
           </div>
 
@@ -352,7 +537,7 @@ function App() {
               <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-800">
 
                 <div
-                  className="h-full rounded-full bg-cyan-500"
+                  className="h-full rounded-full bg-cyan-500 transition-all duration-500"
                   style={{
                     width: `${Math.min(
                       result.risk_score,
@@ -418,7 +603,7 @@ function App() {
                     <div className="h-2 rounded-full bg-slate-800">
 
                       <div
-                        className="h-2 rounded-full bg-cyan-500"
+                        className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
                         style={{
                           width: `${probability}%`,
                         }}
@@ -553,7 +738,7 @@ function App() {
 
 
         {/* STATISTICS */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <p className="text-sm text-slate-400">
@@ -597,6 +782,16 @@ function App() {
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <p className="text-sm text-slate-400">
+              Avg Risk
+            </p>
+
+            <p className="mt-2 text-3xl font-bold text-cyan-400">
+              {averageRisk}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+            <p className="text-sm text-slate-400">
               Analyst Feedback
             </p>
 
@@ -611,9 +806,28 @@ function App() {
         {/* HISTORY */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
 
-          <h2 className="text-xl font-semibold">
-            Detection History
-          </h2>
+          <div className="flex flex-col justify-between gap-2 md:flex-row md:items-center">
+
+            <div>
+              <h2 className="text-xl font-semibold">
+                Detection History
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                {isMonitoring
+                  ? "Live detection stream is active."
+                  : "Recent AI traffic analyses."}
+              </p>
+            </div>
+
+            {isMonitoring && (
+              <div className="flex items-center gap-2 text-sm text-cyan-400">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400"></span>
+                LIVE
+              </div>
+            )}
+
+          </div>
 
           {history.length === 0 ? (
 
